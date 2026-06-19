@@ -13,7 +13,15 @@
 
 # --- Auto-elevation ---
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Start-Process powershell -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
+    if ($PSCommandPath) {
+        # Running from a saved file — re-launch it
+        Start-Process powershell -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
+    } else {
+        # Running via irm | iex — save to temp, then re-launch
+        $tmp = "$env:TEMP\anydesk-manager.ps1"
+        irm "https://raw.githubusercontent.com/Tastico/anydesk-manager/main/anydesk-manager.ps1" | Out-File $tmp -Encoding UTF8
+        Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$tmp`"" -Verb RunAs
+    }
     exit
 }
 
