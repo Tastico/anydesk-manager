@@ -15,12 +15,22 @@
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     if ($PSCommandPath) {
         # Running from a saved file — re-launch it
-        Start-Process powershell -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
+        Start-Process powershell -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -NoExit -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
     } else {
-        # Running via irm | iex — save to temp, then re-launch
+        # Running via irm | iex — download and save properly, then re-launch
+        Write-Host "Requesting administrator privileges..." -ForegroundColor Yellow
         $tmp = "$env:TEMP\anydesk-manager.ps1"
-        irm "https://raw.githubusercontent.com/Tastico/anydesk-manager/main/anydesk-manager.ps1" | Out-File $tmp -Encoding UTF8
-        Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$tmp`"" -Verb RunAs
+        try {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            $script = (New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/Tastico/anydesk-manager/main/anydesk-manager.ps1")
+            # Write as UTF-16LE (Unicode) — PowerShell 5.1's native encoding, always works
+            [System.IO.File]::WriteAllText($tmp, $script, [System.Text.Encoding]::Unicode)
+            Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -NoExit -File `"$tmp`"" -Verb RunAs
+        } catch {
+            Write-Host "ERROR: Could not download or save script. Check your internet connection." -ForegroundColor Red
+            Write-Host $_.Exception.Message -ForegroundColor Red
+            Read-Host "Press Enter to exit"
+        }
     }
     exit
 }
