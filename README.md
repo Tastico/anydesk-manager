@@ -1,14 +1,16 @@
 # AnyDesk Manager
 
-Reset AnyDesk commercial-use detection flags. A 12-tool PowerShell utility.
+Manage AnyDesk client identity, scheduled resets, telemetry blocking, and connectivity. A 12-tool PowerShell utility.
 
 ## Quick Start
 
+PowerShell (auto-elevates if not admin):
+
 ```powershell
-irm https://raw.githubusercontent.com/Tastico/anydesk-manager/main/anydesk-manager.ps1 | iex
+irm https://raw.githubusercontent.com/Tastico/anydesk-manager/main/launcher.ps1 | iex
 ```
 
-Or double-click `anydesk-manager.cmd` — auto-elevates to admin.
+Or clone the repo and double-click `anydesk-manager.cmd` (keep it next to `anydesk-manager.ps1`).
 
 ## Tools
 
@@ -33,6 +35,21 @@ Or double-click `anydesk-manager.cmd` — auto-elevates to admin.
 4. Strips 5 identity keys from `system.conf` (preserves favorites/aliases)
 5. Wipes registry: `HKLM`, `HKCU` AnyDesk keys
 6. Starts AnyDesk, verifies new ID
+
+## Windows Defender / AMSI note
+
+The utility resets AnyDesk identity files and registry keys, which antivirus engines
+classify as a potentially unwanted application (HackTool/PUA). AMSI may block the
+script with `ScriptContainedMaliciousContent` even though the script is a legitimate
+admin tool. The script is plain, readable PowerShell — no obfuscation — so if your
+Defender still flags it, add an exclusion for the script path:
+
+```powershell
+Add-MpPreference -ExclusionPath "$env:TEMP\anydesk-manager.ps1"
+```
+
+For fleet machines, push the exclusion via GPO / Intune / Defender for Business policy,
+or code-sign the script with a trusted certificate.
 
 ## Requirements
 

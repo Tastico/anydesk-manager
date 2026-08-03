@@ -2,8 +2,8 @@
 .SYNOPSIS
     AnyDesk Manager v2.2 — Surgical ID reset, scheduler, telemetry blocking, and more.
 .DESCRIPTION
-    A polished PowerShell utility to manage AnyDesk commercial-use detection.
-    UI styled after Microsoft Activation Scripts (MAS) — clean, sectioned, ASCII-only.
+    A PowerShell utility for AnyDesk client identity and configuration management.
+    Clean, sectioned, ASCII-only console UI.
     Double-click anydesk-manager.cmd to launch, or run directly as admin.
     Auto-elevates if not admin.
 .NOTES
@@ -15,7 +15,7 @@
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     if ($PSCommandPath) {
         # Running from a saved file — re-launch it
-        Start-Process powershell -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -NoExit -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
+        Start-Process powershell -ArgumentList ("-NoProfile -ExecutionPolicy RemoteSigned -NoExit -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
     } else {
         # Running via irm | iex — download and save properly, then re-launch
         Write-Host "Requesting administrator privileges..." -ForegroundColor Yellow
@@ -25,7 +25,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
             $script = (New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/Tastico/anydesk-manager/main/anydesk-manager.ps1")
             # Write as UTF-16LE (Unicode) — PowerShell 5.1's native encoding, always works
             [System.IO.File]::WriteAllText($tmp, $script, [System.Text.Encoding]::Unicode)
-            Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -NoExit -File `"$tmp`"" -Verb RunAs
+            Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy RemoteSigned -NoExit -File `"$tmp`"" -Verb RunAs
         } catch {
             Write-Host "ERROR: Could not download or save script. Check your internet connection." -ForegroundColor Red
             Write-Host $_.Exception.Message -ForegroundColor Red
@@ -53,7 +53,7 @@ $C_Cyan   = "Cyan"
 $C_Magenta = "Magenta"
 
 # ========================================================================
-#  UI helper functions (MAS-inspired)
+#  UI helper functions
 # ========================================================================
 
 function Write-ColorLine {
@@ -235,7 +235,7 @@ function Start-AnyDesk {
     Write-Log "Starting AnyDesk"
     Start-Service -Name "AnyDesk" -ErrorAction SilentlyContinue
     $exe = Find-AnyDesk
-    if ($exe) { Start-Process $exe -WindowStyle Hidden }
+    if ($exe) { Start-Process $exe -WindowStyle $(if ($ShowUI) { 'Normal' } else { 'Hidden' }) }
     if ($WaitForConfig) {
         $configPaths = @("$env:ProgramData\AnyDesk\system.conf", "$env:APPDATA\AnyDesk\system.conf", "$env:LOCALAPPDATA\AnyDesk\system.conf")
         for ($i = 0; $i -lt 15; $i++) {
@@ -368,7 +368,7 @@ function Reset-Surgical {
     Write-BlankLine
     Write-Separator
     Write-BlankLine
-    Write-ColorLine @("       " + "Reset complete. Commercial-use popup should be gone.", $C_Green)
+    Write-ColorLine @("       " + "Reset complete. AnyDesk should no longer flag this device for commercial use.", $C_Green)
     Write-Separator
 }
 
@@ -477,8 +477,8 @@ function Schedule-AutoReset {
         default { return }
     }
     
-    $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scriptPath`" -SilentReset"
-    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -Hidden
+    $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy RemoteSigned -File `"$scriptPath`" -SilentReset"
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
     $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
     
     try {

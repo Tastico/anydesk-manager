@@ -1,6 +1,6 @@
 <#
 .NOTES
-    AnyDesk Manager Launcher — tiny bootstrap that doesn't trigger AMSI.
+    AnyDesk Manager Launcher — bootstrap that downloads and runs the main script.
     Run: irm https://raw.githubusercontent.com/Tastico/anydesk-manager/main/launcher.ps1 | iex
 #>
 param()
@@ -15,7 +15,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     $script = (New-Object Net.WebClient).DownloadString($url)
     [System.IO.File]::WriteAllText($tmp, $script, [System.Text.Encoding]::Unicode)
     Write-Host "Requesting administrator privileges..." -ForegroundColor Yellow
-    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -NoExit -File `"$tmp`"" -Verb RunAs
+    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy RemoteSigned -NoExit -File `"$tmp`"" -Verb RunAs
     exit
 }
 
